@@ -1,0 +1,158 @@
+
+
+<html lang="en" ng-app="BlankApp" ng-controller="AppCtrl">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Angular Material style sheet -->
+    <link rel="stylesheet" href="./bower_components/angular-material/angular-material.min.css">
+    <link href="./Material_Icons" rel="stylesheet">
+    <title>{{ title }}</title>
+    <style type="text/css" media="screen">
+        .ace_editor { height: 200px; }
+    </style>
+</head>
+<body ng-cloak>
+
+
+<div ng-cloak id="popupContainer">
+    <md-toolbar class="md-hue-2">
+        <div class="md-toolbar-tools">
+            <md-button class="md-icon-button" aria-label="Settings">
+                <md-icon class="material-icons">menu</md-icon>
+            </md-button>
+            <h2>
+                <span>{{ title }}</span>
+            </h2>
+            <span flex></span>
+            <md-button class="md-icon-button" aria-label="Favorite">
+                <md-icon class="material-icons">favorite</md-icon>
+            </md-button>
+            5
+            <md-button class="md-icon-button" aria-label="More">
+                <md-icon class="material-icons">more_vert</md-icon>
+            </md-button>
+        </div>
+    </md-toolbar>
+
+    <md-content layout="column" layout-padding>
+        <md-card md-theme="default" md-theme-watch>
+            <md-card-title>
+                <md-card-title-text>
+                    <span class="md-subhead">Input Constituent Tree, Grammar, and Lexicon.</span>
+                </md-card-title-text>
+            </md-card-title>
+            <md-card-content layout="column" layout-align="space-between">
+                <div ui-ace="{ theme:'chrome', mode: 'json' }" ng-model="json_code"></div>
+            </md-card-content>
+            <md-card-actions layout="row" layout-align="end center">
+                <md-button class="md-raised" ng-click="fill_example()">Use Example</md-button>
+                <md-button class="md-raised md-primary" ng-click="submit()">Submit</md-button>
+            </md-card-actions>
+        </md-card>
+
+        <md-card md-theme="default" md-theme-watch ng-show="is_result_got">
+            <md-card-title>
+                <md-card-title-text>
+                    <span class="md-subhead">Result</span>
+                </md-card-title-text>
+            </md-card-title>
+            <md-card-content layout="column" layout-align="space-between">
+                <div ui-ace="{ theme:'chrome', mode: 'xml' }" ng-model="xml_result"></div>
+            </md-card-content>
+            <md-card-actions layout="row" layout-align="end center">
+                <md-button class="md-raised" clipboard text="xml_result" on-copied="copy()">
+                    Copy to Clipboard</md-button>
+                <md-button class="md-raised md-primary"
+                           ng-click="save()">Save</md-button>
+            </md-card-actions>
+        </md-card>
+    </md-content>
+
+</div>
+
+
+
+<!-- Angular Material requires Angular.js Libraries -->
+<script src="./bower_components/angular/angular.min.js"></script>
+<script src="./bower_components/angular-animate/angular-animate.min.js"></script>
+<script src="./bower_components/angular-aria/angular-aria.min.js"></script>
+<script src="./bower_components/angular-messages/angular-messages.min.js"></script>
+<script src="./bower_components/ace-builds/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript" src="./bower_components/angular-clipboard/angular-clipboard.js"></script>
+<script type="text/javascript" src="./bower_components/file-saver/FileSaver.js"></script>
+<script type="text/javascript" src="./bower_components/angular-ui-ace/ui-ace.js"></script>
+
+<!-- Angular Material Library -->
+<script src="./bower_components/angular-material/angular-material.min.js"></script>
+
+<!-- Your application bootstrap  -->
+<script type="text/javascript">
+    /**
+     * You must include the dependency on 'ngMaterial'
+     */
+    angular.module('BlankApp', ['ngMaterial', 'ui.ace', 'angular-clipboard'])
+            .controller('AppCtrl', function($scope, $http, $mdToast, $mdDialog) {
+                $scope.title = "LFGParser Online";
+                $scope.json_code = "";
+                $scope.xml_result = "";
+                $scope.is_result_got = false;
+
+                $http.defaults.transformResponse = [function (data) { return data; }];
+
+                $scope.fill_example = function() {
+                    $http.get('./input.json').then(function successCallback(response) {
+                        $scope.json_code = response.data;
+                    });
+                }
+
+                $scope.submit = function() {
+                    $http.post("./api/parse_lfg",
+                            $scope.json_code).then(function successCallback(response) {
+                                var json_object = JSON.parse(response.data);
+                                if (json_object.status === "success") {
+                                    $scope.xml_result = json_object.data;
+                                    $scope.is_result_got = true;
+                                    var toast = $mdToast.simple().textContent('Parsed.').position("bottom");
+                                    $mdToast.show(toast);
+                                } else if (json_object.status === "error") {
+                                    $scope.alert("Error", json_object.data);
+                                } else {
+                                    $scope.alert("Error", "Unknown error.");
+                                }
+                            }, function errorCallback(response) {
+                                $scope.alert("Error", "Network error or server error.");
+                            }
+                    );
+                }
+
+                $scope.copy = function() {
+                    var toast = $mdToast.simple().textContent('Copied.').position("bottom");
+                    $mdToast.show(toast);
+                }
+
+                $scope.save = function() {
+                    var data = new Blob([$scope.xml_result], { type: 'text/xml; charset=utf-8' });
+                    saveAs(data, 'lfgparser-' + new Date().toTimeString() + '.xml', true);
+                }
+
+                $scope.alert = function(title, s) {
+                    $mdDialog.show(
+                            $mdDialog.alert()
+                                    .parent(angular.element(document.querySelector('#popupContainer')))
+                                    .clickOutsideToClose(true)
+                                    .title(title)
+                                    .textContent(s)
+                                    .ariaLabel('Alert Dialog')
+                                    .ok('OK')
+                    );
+                }
+            });
+</script>
+</body>
+</html>
+
+<!--
+Copyright 2016 Google Inc. All Rights Reserved. 
+Use of this source code is governed by an MIT-style license that can be in foundin the LICENSE file at http://material.angularjs.org/license.
+-->
+

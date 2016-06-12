@@ -1,0 +1,13 @@
+{
+    "const_tree": "(s (np (n lion)) (vp (v lives)))",
+    "grammar": [
+        "S -> NP: (^ SUBJ) = !, VP: ^ = !",
+        "NP -> (Det: ^ = !), N: ^ = !",
+        "VP -> V: ^ = !, (PP: (^ OBL_LOC) = !)"
+    ],
+    "lexicon": [
+        "N - lion: (^ PRED) = 'lion', (^ NUM) = PL",
+        "V - live: (^ PRED) = 'live(...)', (^ TENSE) = PRES",
+        "live -> lives: (! PRES) = 3, (! NUM) = SG"
+    ]
+}
